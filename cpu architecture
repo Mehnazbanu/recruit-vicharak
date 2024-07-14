@@ -1,0 +1,56 @@
+module cpu (
+    input clk,
+    input reset,
+    input [18:0] instr_in,
+    input [18:0] data_in,
+    output [18:0] data_out,
+    output [15:0] addr_out
+);
+    // Register File
+    reg [18:0] regfile [15:0];
+    reg [18:0] instr_reg, data_reg;
+    
+    // ALU
+    reg [18:0] alu_result;
+    wire [4:0] opcode, op1, op2;
+    wire [3:0] dest;
+    
+    assign opcode = instr_in[18:14];
+    assign op1 = instr_in[13:9];
+    assign op2 = instr_in[8:4];
+    assign dest = instr_in[3:0];
+
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            // Initialize register file
+            integer i;
+            for (i = 0; i < 16; i = i + 1) begin
+                regfile[i] <= 19'b0;
+            end
+        end else begin
+            case (opcode)
+                5'b00000: alu_result = regfile[op1] + regfile[op2]; // ADD
+                5'b00001: alu_result = regfile[op1] - regfile[op2]; // SUB
+                5'b00010: alu_result = regfile[op1] & regfile[op2]; // AND
+                5'b00011: alu_result = regfile[op1] | regfile[op2]; // OR
+                5'b00100: alu_result = regfile[op1] ^ regfile[op2]; // XOR
+                5'b00101: alu_result = regfile[op1];                // MOV
+                5'b01000: // ENC (dummy example)
+                    alu_result = regfile[op1] ^ 19'h12345;
+                5'b01001: // DEC (dummy example)
+                    alu_result = regfile[op1] ^ 19'h54321;
+                5'b01010: // KEYEXP (dummy example)
+                    alu_result = regfile[op1] + regfile[op2];
+                default: alu_result = 19'b0;
+            endcase
+
+            // Write-back stage
+            regfile[dest] <= alu_result;
+        end
+    end
+
+    // Output assignments
+    assign data_out = alu_result;
+    assign addr_out = alu_result[15:0]; // Assuming 16-bit address space
+
+endmodule
